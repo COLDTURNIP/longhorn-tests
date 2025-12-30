@@ -3765,28 +3765,31 @@ def test_multiple_volumes_creation_with_degraded_availability(set_random_backups
     Scenario: verify multiple volumes with degraded availability can be
               created, attached, detached, and deleted at nearly the same time.
 
-    Given new StorageClass created with `numberOfReplicas=5`.
+    Given new StorageClass created with `numberOfReplicas=num_nodes+1`.
 
     When set `allow-volume-creation-with-degraded-availability` to `True`.
-    And deploy this StatefulSet:
+    And deploy this StatefulSet that has replicas equal to the number of nodes:
         https://github.com/longhorn/longhorn/issues/2073#issuecomment-742948726
-    Then all 10 volumes are healthy in 1 minute.
+    Then all volumes for each statefulset replica are healthy in 1 minute.
 
     When delete the StatefulSet.
-    then all 10 volumes are detached in 1 minute.
+    then all volumes are detached in 1 minute.
 
     When find and delete the PVC of the 10 volumes.
-    Then all 10 volumes are deleted in 1 minute.
+    Then all volumes are deleted in 1 minute.
     """
-    storage_class['parameters']['numberOfReplicas'] = "5"
-    create_storage_class(storage_class)
 
+    num_nodes = len(client.list_node())
+    assert num_nodes > 0
+
+    storage_class['parameters']['numberOfReplicas'] = str(num_nodes + 1)
+    create_storage_class(storage_class)
     common.update_setting(client,
                           common.SETTING_DEGRADED_AVAILABILITY, "true")
 
     sts_spec = statefulset['spec']
     sts_spec['podManagementPolicy'] = "Parallel"
-    sts_spec['replicas'] = 10
+    sts_spec['replicas'] = num_nodes
     sts_spec['volumeClaimTemplates'][0]['spec']['storageClassName'] = \
         storage_class['metadata']['name']
     statefulset['spec'] = sts_spec
