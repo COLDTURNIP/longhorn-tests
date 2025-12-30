@@ -128,8 +128,13 @@ install_longhorn_custom(){
 uninstall_longhorn(){
   get_longhorn_namespace
   UNINSTALL_VERSION="${1:-$LONGHORN_REPO_BRANCH}"
+  USE_CUSTOM_MANAGER_IMAGE="${2:-false}"
 
   get_longhorn_repo "${UNINSTALL_VERSION}"
+
+  if [[ "${USE_CUSTOM_MANAGER_IMAGE}" == "true" && -n "${CUSTOM_LONGHORN_MANAGER_IMAGE}" ]]; then
+    yq -i 'select(.kind == "Job" and .metadata.name == "longhorn-uninstall").spec.template.spec.containers[] |= select(.name == "longhorn-uninstall").image = strenv(CUSTOM_LONGHORN_MANAGER_IMAGE)' "${LONGHORN_UNINSTALL_MANIFEST_PATH}"
+  fi
 
   sed -i "s/longhorn-system/${LONGHORN_NAMESPACE}/g" "${LONGHORN_UNINSTALL_MANIFEST_PATH}"
   kubectl create -f "${LONGHORN_UNINSTALL_MANIFEST_PATH}"

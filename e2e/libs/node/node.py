@@ -30,6 +30,10 @@ class Node:
             self.init_node_list()
         self.retry_count, self.retry_interval = get_retry_count_and_interval()
 
+    def _is_default_filesystem_disk(self, disk):
+        return os.path.normpath(disk.path) == os.path.normpath(self.DEFAULT_DISK_PATH)
+
+
     def mount_disk(self, disk_name, node_name):
         mount_path = os.path.join(self.DEFAULT_DISK_PATH, disk_name)
         device_path = os.path.join(self.DEFAULT_VOLUME_PATH, disk_name)
@@ -355,7 +359,7 @@ class Node:
         node = get_longhorn_client().by_id_node(node_name)
 
         for disk_name, disk in iter(node.disks.items()):
-            if disk.path == self.DEFAULT_DISK_PATH:
+            if self._is_default_filesystem_disk(disk):
                 disk.allowScheduling = allowScheduling
         self.update_disks(node_name, node.disks)
 
@@ -363,7 +367,7 @@ class Node:
         node = get_longhorn_client().by_id_node(node_name)
 
         for disk_name, disk in iter(node.disks.items()):
-            if disk.path == self.DEFAULT_DISK_PATH:
+            if self._is_default_filesystem_disk(disk):
                 disk.evictionRequested = evictionRequested
         self.update_disks(node_name, node.disks)
 
@@ -554,7 +558,7 @@ class Node:
     def get_default_file_system_disk_name(self, node_name):
         node = get_longhorn_client().by_id_node(node_name)
         for disk_name, disk in iter(node.disks.items()):
-            if disk.path == self.DEFAULT_DISK_PATH:
+            if self._is_default_filesystem_disk(disk):
                 return disk_name
         assert False, f"no disk no {node_name} use disk path {self.DEFAULT_DISK_PATH}"
 
@@ -619,7 +623,7 @@ class Node:
 
         disks = {}
         for disk_name, disk in iter(node.disks.items()):
-            if disk.path == self.DEFAULT_DISK_PATH:
+            if self._is_default_filesystem_disk(disk):
                 logging(f"Deleting disk {disk_name} (path={disk.path}) from node {node_name}")
                 continue
             logging(f"Keeping disk {disk_name} (path={disk.path}) on node {node_name}")
@@ -629,7 +633,7 @@ class Node:
     def get_default_disk_uuid_on_node(self, node_name):
         node = get_longhorn_client().by_id_node(node_name)
         for disk_name, disk in iter(node.disks.items()):
-            if disk.path == self.DEFAULT_DISK_PATH:
+            if self._is_default_filesystem_disk(disk):
                 return self.get_disk_uuid(node_name, disk_name)
         assert False, f"No disk is using path {self.DEFAULT_DISK_PATH}"
 

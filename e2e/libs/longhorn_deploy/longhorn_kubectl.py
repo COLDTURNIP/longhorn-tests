@@ -20,8 +20,8 @@ class LonghornKubectl(Base):
 
         logging(f"Running longhorn uninstall job")
         command = "./pipelines/utilities/longhorn_manifest.sh"
-        process = subprocess.Popen([command, "uninstall_longhorn", longhorn_branch],
-                                   shell=False)
+        process = subprocess.Popen([command, "uninstall_longhorn", longhorn_branch,
+                                    str(not is_stable_version).lower()], shell=False)
         process.wait()
         if process.returncode != 0:
             logging(f"Uninstall longhorn failed")
